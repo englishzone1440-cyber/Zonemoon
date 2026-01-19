@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل مدرسة جعفر بن أبي طالب</title>
+    <style>
+        :root { --pos: #2ecc71; --neg: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 10px; direction: rtl; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .school-name { font-size: 22px; font-weight: bold; color: #2c3e50; }
+        
+        /* تصميم ولي الأمر الجديد (بطاقات) */
+        .log-card { background: #fff; border-right: 6px solid #ccc; margin-bottom: 10px; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .log-card.pos { border-right-color: var(--pos); background: #f0fff4; }
+        .log-card.neg { border-right-color: var(--neg); background: #fff5f5; }
+        .log-info { display: flex; flex-direction: column; }
+        .log-text { font-weight: bold; color: #333; font-size: 16px; }
+        .log-date { font-size: 12px; color: #777; margin-top: 4px; }
+        .log-count { background: #eee; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 14px; }
+
+        .input-field { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        .btn-admin { background: #000; color: white; }
+        .btn-refresh { background: #3498db; color: white; }
+        .hidden { display: none; }
+        .nav-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 10px; background: #eee; text-align: center; border-radius: 8px; cursor: pointer; }
+        .tab.active { background: #2c3e50; color: white; }
+        .behavior-btn { background: #fff; border: 1px solid #ddd; padding: 10px; font-size: 13px; border-radius: 8px; }
+        .behavior-btn.selected { background: #e1f5fe; border-color: #3498db; }
+    </style>
+</head>
+<body onload="initApp()">
+
+<div class="container" id="loginPage">
+    <div class="header">
+        <div class="school-name">مدرسة جعفر بن أبي طالب</div>
+        <div style="color:#7f8c8d;">سجل المتابعة الرقمي</div>
+    </div>
+    <label>اختر الصف:</label>
+    <select id="selectClass" class="input-field" onchange="updateStudentOptions()">
+        <option value="">-- اختر --</option>
+        <option value="A">رابع أ</option>
+        <option value="B">رابع ب</option>
+        <option value="C">رابع ج</option>
+        <option value="D">رابع د</option>
+        <option value="admin">دخول المعلم 💼</option>
+    </select>
+    <div id="stLoginDiv">
+        <label>اسم الطالب:</label>
+        <select id="studentSelect" class="input-field"></select>
+    </div>
+    <label>كلمة المرور:</label>
+    <input type="password" id="passInput" class="input-field">
+    <button class="btn btn-admin" onclick="handleLogin()">دخول النظام</button>
+</div>
+
+<div class="container hidden" id="mainApp">
+    <div id="teacherNav" class="nav-tabs hidden">
+        <div class="tab" id="tabA" onclick="switchClass('A')">أ</div>
+        <div class="tab" id="tabB" onclick="switchClass('B')">ب</div>
+        <div class="tab" id="tabC" onclick="switchClass('C')">ج</div>
+        <div class="tab" id="tabD" onclick="switchClass('D')">د</div>
+    </div>
+
+    <h3 id="panelTitle" style="text-align:center;"></h3>
+
+    <div id="parentView" class="hidden">
+        <button class="btn btn-refresh" onclick="manualRefresh()">🔄 تحديث البيانات الآن</button>
+        <div id="cardsContainer" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+        <div id="studentChecklist" style="max-height:180px; overflow-y:auto; border:1px solid #eee; border-radius:8px; padding:10px; margin-bottom:15px;"></div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="btn" style="background:var(--pos); color:white;" onclick="setMode('positive')">تميز ⭐</button>
+            <button class="btn" style="background:var(--neg); color:white;" onclick="setMode('negative')">تنبيه ⚠️</button>
+        </div>
+        <div id="behaviorGrid" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;"></div>
+        
+        <div id="manualInputDiv" class="hidden" style="margin-top:10px;">
+            <label style="font-size:12px; font-weight:bold;">ملاحظة يدوية:</label>
+            <input type="text" id="manualText" class="input-field" placeholder="اكتب السلوك هنا...">
+        </div>
+
+        <button class="btn btn-admin" onclick="saveEntry()" style="margin-top:20px;">حفظ ومزامنة مع الشيت 💾</button>
+    </div>
+
+    <button class="btn" style="background:#eee; color:#333; margin-top:25px;" onclick="location.reload()">تسجيل الخروج 🚪</button>
+</div>
+
+<script>
+// الرابط الجديد المحدث
+const scriptURL = "https://script.google.com/macros/s/AKfycbx7i1hIeq1q5rqOTJhZi_e-aR3hE3mi8su7EgYuE4ugim7pSLILBPpFyzTPRQAaGEwM/exec";
+
+let db = { "A": {}, "B": {}, "C": {}, "D": {} };
+let isAdmin = false;
+let activeCls = "";
+let curMode = "";
+let currentStudentName = "";
+
+async function initApp() {
+    await refreshData();
+}
+
+async function refreshData() {
+    try {
+        const r = await fetch(scriptURL);
+        const cloud = await r.json();
+        if (cloud && cloud.A) db = cloud;
+        if (currentStudentName) renderParentCards(currentStudentName);
+    } catch(e) { console.log("خطأ في الاتصال"); }
+}
+
+async function manualRefresh() {
+    const btn = document.querySelector('.btn-refresh');
+    btn.innerText = "⏳ جاري التحديث...";
+    await refreshData();
+    btn.innerText = "🔄 تحديث البيانات الآن";
+}
+
+function updateStudentOptions() {
+    const cls = document.getElementById('selectClass').value;
+    const sel = document.getElementById('studentSelect');
+    const div = document.getElementById('stLoginDiv');
+    if(cls === 'admin' || cls === "") div.classList.add('hidden');
+    else {
+        div.classList.remove('hidden');
+        sel.innerHTML = '<option value="">اختر الاسم</option>';
+        if(db[cls]) Object.keys(db[cls]).filter(n=>!n.includes("_logs")).forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
+    }
+}
+
+function handleLogin() {
+    const cls = document.getElementById('selectClass').value;
+    const pw = document.getElementById('passInput').value;
+    if(cls === 'admin' && pw === "1240Alih") {
+        isAdmin = true; switchClass('A');
+    } else if(db[cls]) {
+        const name = document.getElementById('studentSelect').value;
+        if(db[cls][name] === pw) {
+            isAdmin = false; activeCls = cls; currentStudentName = name; showMain(name);
+        } else alert("بيانات الدخول غير صحيحة");
+    }
+}
+
+function showMain(name = "") {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('teacherNav').classList.toggle('hidden', !isAdmin);
+    document.getElementById('adminPanel').classList.toggle('hidden', !isAdmin);
+    document.getElementById('parentView').classList.toggle('hidden', isAdmin);
+    
+    if(isAdmin) {
+        document.getElementById('panelTitle').innerText = "لوحة المعلم - رابع " + activeCls;
+        renderChecklist();
+    } else {
+        document.getElementById('panelTitle').innerText = "سجل الطالب: " + name;
+        renderParentCards(name);
+    }
+}
+
+function renderParentCards(name) {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = "";
+    const logs = db[activeCls][name + "_logs"] || [];
+    if(logs.length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#999;'>لا توجد ملاحظات مرصودة.</p>";
+        return;
+    }
+    logs.sort((a,b) => b.id - a.id).forEach(l => {
+        const card = document.createElement('div');
+        card.className = `log-card ${l.type === 'positive' ? 'pos' : 'neg'}`;
+        card.innerHTML = `
+            <div class="log-info">
+                <span class="log-text">${l.text}</span>
+                <span class="log-date">${l.date} - ${l.time}</span>
+            </div>
+            <div class="log-count">${l.count}x</div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function switchClass(c) {
+    activeCls = c;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab'+c).classList.add('active');
+    showMain();
+}
+
+function renderChecklist() {
+    const list = document.getElementById('studentChecklist');
+    list.innerHTML = "";
+    Object.keys(db[activeCls]).filter(n=>!n.includes("_logs")).sort().forEach(n => {
+        list.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><input type="checkbox" class="st-check" value="${n}"> ${n}</div>`;
+    });
+}
+
+function setMode(m) {
+    curMode = m;
+    document.getElementById('behaviorGrid').classList.remove('hidden');
+    document.getElementById('manualInputDiv').classList.remove('hidden');
+    const grid = document.getElementById('behaviorGrid');
+    grid.innerHTML = "";
+    const list = m === 'positive' ? ["تميز وإبداع ⭐", "مشاركة فاعلة", "إحضار الأدوات"] : ["تحدث", "لعب", "إزعاج", "عدم إحضار كتاب", "تأخر", "تنمر"];
+    list.forEach(b => grid.innerHTML += `<button class="behavior-btn" onclick="this.classList.toggle('selected')">${b}</button>`);
+}
+
+async function saveEntry() {
+    const sts = Array.from(document.querySelectorAll('.st-check:checked')).map(c => c.value);
+    const acts = Array.from(document.querySelectorAll('.behavior-btn.selected')).map(b => b.innerText);
+    const manual = document.getElementById('manualText').value.trim();
+    if(manual) acts.push(manual);
+    
+    if(!sts.length || !acts.length) return alert("اختر الطالب والسلوك أولاً");
+    
+    const now = new Date();
+    const dt = now.toLocaleDateString('ar-SA');
+    const tm = now.toLocaleTimeString('ar-SA', {hour:'2-digit', minute:'2-digit'});
+    
+    sts.forEach(st => {
+        if(!db[activeCls][st+"_logs"]) db[activeCls][st+"_logs"] = [];
+        acts.forEach(a => {
+            let exist = db[activeCls][st+"_logs"].find(l => l.text === a && l.date === dt);
+            if(exist) exist.count++;
+            else db[activeCls][st+"_logs"].push({ id: Date.now()+Math.random(), text: a, date: dt, time: tm, type: curMode, count: 1 });
+        });
+    });
+    
+    await fetch(scriptURL, {method: 'POST', mode: 'no-cors', body: JSON.stringify(db)});
+    alert("تم الحفظ والمزامنة مع الجوجل شيت بنجاح");
+    location.reload();
+}
+</script>
+</body>
+</html>
